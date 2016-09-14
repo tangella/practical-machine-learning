@@ -152,6 +152,7 @@ testingset &lt;- read.csv(&quot;pml-testing.csv&quot;, header = TRUE,
 </div>
 <div id="clean-the-data" class="section level3">
 <h3>Clean the data</h3>
+<p>There are 19622 observations with 160 variables, we will reduce the set to the 52 variables for our model. Same variables are used for prediction for test sample and actual <code>testingset</code> too.</p>
 <pre class="r"><code># up to num_window variable they are not used in our model
 trainingset &lt;- trainingset[, -c(1,2,3,4,5,6,7)]
 
@@ -160,6 +161,265 @@ trainingset &lt;-trainingset[, apply(trainingset, 2, function(x) !any(is.na(x)))
 
 # apply the variables for testset as well from the above
 testingset &lt;- testingset[,names(trainingset[,-53])]</code></pre>
+</div>
+<div id="training-and-prediction" class="section level3">
+<h3>Training and Prediction</h3>
+<p>we will split the data into 75% training and 25% for testing</p>
+<pre class="r"><code>inTrain&lt;-createDataPartition(y=trainingset$classe, p=0.75,list=FALSE)
+training&lt;-trainingset[inTrain,] 
+test&lt;-trainingset[-inTrain,] 
+#Training and test set dimensions
+dim(training)</code></pre>
+<pre><code>## [1] 14718    53</code></pre>
+</div>
+<div id="prediction-modeling" class="section level3">
+<h3>Prediction modeling</h3>
+<p>We will use <code>randomforest</code>, <code>boosted tree model</code> and <code>k-nearest neighbour</code> classifications for predictions and compare their accuracies</p>
+<pre class="r"><code>set.seed(18435)
+# we will use the following 3 models to predict
+fitControl &lt;- trainControl(method=&quot;cv&quot;, number=5, allowParallel=TRUE, verbose=TRUE)
+
+randomforestfit &lt;- train(classe~.,data=training, method=&quot;rf&quot;, 
+                       trControl=fitControl, verbose=FALSE)</code></pre>
+<pre><code>## Loading required package: randomForest</code></pre>
+<pre><code>## randomForest 4.6-12</code></pre>
+<pre><code>## Type rfNews() to see new features/changes/bug fixes.</code></pre>
+<pre><code>## 
+## Attaching package: 'randomForest'</code></pre>
+<pre><code>## The following object is masked from 'package:ggplot2':
+## 
+##     margin</code></pre>
+<pre><code>## + Fold1: mtry= 2 
+## - Fold1: mtry= 2 
+## + Fold1: mtry=27 
+## - Fold1: mtry=27 
+## + Fold1: mtry=52 
+## - Fold1: mtry=52 
+## + Fold2: mtry= 2 
+## - Fold2: mtry= 2 
+## + Fold2: mtry=27 
+## - Fold2: mtry=27 
+## + Fold2: mtry=52 
+## - Fold2: mtry=52 
+## + Fold3: mtry= 2 
+## - Fold3: mtry= 2 
+## + Fold3: mtry=27 
+## - Fold3: mtry=27 
+## + Fold3: mtry=52 
+## - Fold3: mtry=52 
+## + Fold4: mtry= 2 
+## - Fold4: mtry= 2 
+## + Fold4: mtry=27 
+## - Fold4: mtry=27 
+## + Fold4: mtry=52 
+## - Fold4: mtry=52 
+## + Fold5: mtry= 2 
+## - Fold5: mtry= 2 
+## + Fold5: mtry=27 
+## - Fold5: mtry=27 
+## + Fold5: mtry=52 
+## - Fold5: mtry=52 
+## Aggregating results
+## Selecting tuning parameters
+## Fitting mtry = 2 on full training set</code></pre>
+<pre class="r"><code>randomforestpred &lt;- predict(randomforestfit, newdata=test)
+
+# model 2
+
+gmbfit &lt;- train(classe~.,data=training, method=&quot;gbm&quot;, 
+                trControl=fitControl, verbose=FALSE)</code></pre>
+<pre><code>## Loading required package: gbm</code></pre>
+<pre><code>## Loading required package: survival</code></pre>
+<pre><code>## 
+## Attaching package: 'survival'</code></pre>
+<pre><code>## The following object is masked from 'package:caret':
+## 
+##     cluster</code></pre>
+<pre><code>## Loading required package: splines</code></pre>
+<pre><code>## Loading required package: parallel</code></pre>
+<pre><code>## Loaded gbm 2.1.1</code></pre>
+<pre><code>## Loading required package: plyr</code></pre>
+<pre><code>## + Fold1: shrinkage=0.1, interaction.depth=1, n.minobsinnode=10, n.trees=150 
+## - Fold1: shrinkage=0.1, interaction.depth=1, n.minobsinnode=10, n.trees=150 
+## + Fold1: shrinkage=0.1, interaction.depth=2, n.minobsinnode=10, n.trees=150 
+## - Fold1: shrinkage=0.1, interaction.depth=2, n.minobsinnode=10, n.trees=150 
+## + Fold1: shrinkage=0.1, interaction.depth=3, n.minobsinnode=10, n.trees=150 
+## - Fold1: shrinkage=0.1, interaction.depth=3, n.minobsinnode=10, n.trees=150 
+## + Fold2: shrinkage=0.1, interaction.depth=1, n.minobsinnode=10, n.trees=150 
+## - Fold2: shrinkage=0.1, interaction.depth=1, n.minobsinnode=10, n.trees=150 
+## + Fold2: shrinkage=0.1, interaction.depth=2, n.minobsinnode=10, n.trees=150 
+## - Fold2: shrinkage=0.1, interaction.depth=2, n.minobsinnode=10, n.trees=150 
+## + Fold2: shrinkage=0.1, interaction.depth=3, n.minobsinnode=10, n.trees=150 
+## - Fold2: shrinkage=0.1, interaction.depth=3, n.minobsinnode=10, n.trees=150 
+## + Fold3: shrinkage=0.1, interaction.depth=1, n.minobsinnode=10, n.trees=150 
+## - Fold3: shrinkage=0.1, interaction.depth=1, n.minobsinnode=10, n.trees=150 
+## + Fold3: shrinkage=0.1, interaction.depth=2, n.minobsinnode=10, n.trees=150 
+## - Fold3: shrinkage=0.1, interaction.depth=2, n.minobsinnode=10, n.trees=150 
+## + Fold3: shrinkage=0.1, interaction.depth=3, n.minobsinnode=10, n.trees=150 
+## - Fold3: shrinkage=0.1, interaction.depth=3, n.minobsinnode=10, n.trees=150 
+## + Fold4: shrinkage=0.1, interaction.depth=1, n.minobsinnode=10, n.trees=150 
+## - Fold4: shrinkage=0.1, interaction.depth=1, n.minobsinnode=10, n.trees=150 
+## + Fold4: shrinkage=0.1, interaction.depth=2, n.minobsinnode=10, n.trees=150 
+## - Fold4: shrinkage=0.1, interaction.depth=2, n.minobsinnode=10, n.trees=150 
+## + Fold4: shrinkage=0.1, interaction.depth=3, n.minobsinnode=10, n.trees=150 
+## - Fold4: shrinkage=0.1, interaction.depth=3, n.minobsinnode=10, n.trees=150 
+## + Fold5: shrinkage=0.1, interaction.depth=1, n.minobsinnode=10, n.trees=150 
+## - Fold5: shrinkage=0.1, interaction.depth=1, n.minobsinnode=10, n.trees=150 
+## + Fold5: shrinkage=0.1, interaction.depth=2, n.minobsinnode=10, n.trees=150 
+## - Fold5: shrinkage=0.1, interaction.depth=2, n.minobsinnode=10, n.trees=150 
+## + Fold5: shrinkage=0.1, interaction.depth=3, n.minobsinnode=10, n.trees=150 
+## - Fold5: shrinkage=0.1, interaction.depth=3, n.minobsinnode=10, n.trees=150 
+## Aggregating results
+## Selecting tuning parameters
+## Fitting n.trees = 150, interaction.depth = 3, shrinkage = 0.1, n.minobsinnode = 10 on full training set</code></pre>
+<pre class="r"><code>gmbpred &lt;- predict(gmbfit, newdata=test)
+
+confusionMatrix(gmbpred, test$classe)</code></pre>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 1375   19    0    2    0
+##          B   13  904   22    6    9
+##          C    4   26  821   20   12
+##          D    1    0    7  772   10
+##          E    2    0    5    4  870
+## 
+## Overall Statistics
+##                                           
+##                Accuracy : 0.967           
+##                  95% CI : (0.9616, 0.9718)
+##     No Information Rate : 0.2845          
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
+##                                           
+##                   Kappa : 0.9582          
+##  Mcnemar's Test P-Value : 0.0001516       
+## 
+## Statistics by Class:
+## 
+##                      Class: A Class: B Class: C Class: D Class: E
+## Sensitivity            0.9857   0.9526   0.9602   0.9602   0.9656
+## Specificity            0.9940   0.9874   0.9847   0.9956   0.9973
+## Pos Pred Value         0.9850   0.9476   0.9298   0.9772   0.9875
+## Neg Pred Value         0.9943   0.9886   0.9915   0.9922   0.9923
+## Prevalence             0.2845   0.1935   0.1743   0.1639   0.1837
+## Detection Rate         0.2804   0.1843   0.1674   0.1574   0.1774
+## Detection Prevalence   0.2847   0.1945   0.1801   0.1611   0.1796
+## Balanced Accuracy      0.9898   0.9700   0.9725   0.9779   0.9814</code></pre>
+<pre class="r"><code># model 3
+
+knnfit &lt;- train(classe~.,data=training, method=&quot;knn&quot;) 
+
+knnpred &lt;- predict(knnfit, newdata=test)
+
+confusionMatrix(randomforestpred, test$classe)</code></pre>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 1395    0    0    0    0
+##          B    0  948    4    0    0
+##          C    0    1  850    9    0
+##          D    0    0    1  795    0
+##          E    0    0    0    0  901
+## 
+## Overall Statistics
+##                                          
+##                Accuracy : 0.9969         
+##                  95% CI : (0.995, 0.9983)
+##     No Information Rate : 0.2845         
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16      
+##                                          
+##                   Kappa : 0.9961         
+##  Mcnemar's Test P-Value : NA             
+## 
+## Statistics by Class:
+## 
+##                      Class: A Class: B Class: C Class: D Class: E
+## Sensitivity            1.0000   0.9989   0.9942   0.9888   1.0000
+## Specificity            1.0000   0.9990   0.9975   0.9998   1.0000
+## Pos Pred Value         1.0000   0.9958   0.9884   0.9987   1.0000
+## Neg Pred Value         1.0000   0.9997   0.9988   0.9978   1.0000
+## Prevalence             0.2845   0.1935   0.1743   0.1639   0.1837
+## Detection Rate         0.2845   0.1933   0.1733   0.1621   0.1837
+## Detection Prevalence   0.2845   0.1941   0.1754   0.1623   0.1837
+## Balanced Accuracy      1.0000   0.9990   0.9958   0.9943   1.0000</code></pre>
+<pre class="r"><code>confusionMatrix(gmbpred, test$classe)</code></pre>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 1375   19    0    2    0
+##          B   13  904   22    6    9
+##          C    4   26  821   20   12
+##          D    1    0    7  772   10
+##          E    2    0    5    4  870
+## 
+## Overall Statistics
+##                                           
+##                Accuracy : 0.967           
+##                  95% CI : (0.9616, 0.9718)
+##     No Information Rate : 0.2845          
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
+##                                           
+##                   Kappa : 0.9582          
+##  Mcnemar's Test P-Value : 0.0001516       
+## 
+## Statistics by Class:
+## 
+##                      Class: A Class: B Class: C Class: D Class: E
+## Sensitivity            0.9857   0.9526   0.9602   0.9602   0.9656
+## Specificity            0.9940   0.9874   0.9847   0.9956   0.9973
+## Pos Pred Value         0.9850   0.9476   0.9298   0.9772   0.9875
+## Neg Pred Value         0.9943   0.9886   0.9915   0.9922   0.9923
+## Prevalence             0.2845   0.1935   0.1743   0.1639   0.1837
+## Detection Rate         0.2804   0.1843   0.1674   0.1574   0.1774
+## Detection Prevalence   0.2847   0.1945   0.1801   0.1611   0.1796
+## Balanced Accuracy      0.9898   0.9700   0.9725   0.9779   0.9814</code></pre>
+<pre class="r"><code>confusionMatrix(knnpred, test$classe)</code></pre>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 1341   43    8   13   14
+##          B   17  825   31    5   38
+##          C    7   34  790   49   19
+##          D   27   22   13  726   22
+##          E    3   25   13   11  808
+## 
+## Overall Statistics
+##                                           
+##                Accuracy : 0.9156          
+##                  95% CI : (0.9074, 0.9232)
+##     No Information Rate : 0.2845          
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
+##                                           
+##                   Kappa : 0.8932          
+##  Mcnemar's Test P-Value : 1.179e-09       
+## 
+## Statistics by Class:
+## 
+##                      Class: A Class: B Class: C Class: D Class: E
+## Sensitivity            0.9613   0.8693   0.9240   0.9030   0.8968
+## Specificity            0.9778   0.9770   0.9731   0.9795   0.9870
+## Pos Pred Value         0.9450   0.9007   0.8788   0.8963   0.9395
+## Neg Pred Value         0.9845   0.9689   0.9838   0.9809   0.9770
+## Prevalence             0.2845   0.1935   0.1743   0.1639   0.1837
+## Detection Rate         0.2735   0.1682   0.1611   0.1480   0.1648
+## Detection Prevalence   0.2894   0.1868   0.1833   0.1652   0.1754
+## Balanced Accuracy      0.9695   0.9232   0.9485   0.9412   0.9419</code></pre>
+<p>From the above <code>Random Forest</code> classification has accuracy of 99.4% with 95% CI (0.9908, 0.9955) and Kappa: 0.99</p>
+<p>From the above <code>boosted tree model</code> classification has accuracy of 96% with 95% CI (0.9533, 0.9646) and Kappa: 0.95</p>
+<p>From the above <code>k-nearest neighbour</code> classification has accuracy of 91% with 95% CI (0.8979, 0.9144) and Kappa: 0.88</p>
+<p>Since <code>Random Forest</code> has the highest accuracy, we will use the same for predicting the <code>testingset</code> values</p>
+</div>
+<div id="prediction-for-testingset" class="section level3">
+<h3>Prediction for <code>testingset</code></h3>
+<pre class="r"><code>testingsetpred &lt;-predict(randomforestfit, newdata=testingset)
+
+testingsetpred</code></pre>
+<pre><code>##  [1] B A B A A E D B A A B C B A E E A B B B
+## Levels: A B C D E</code></pre>
 </div>
 </div>
 
