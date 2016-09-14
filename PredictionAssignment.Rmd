@@ -1,0 +1,119 @@
+---
+title: "Prediction Assignment"
+author: "Mahesh"
+date: "14 September 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Prediction analysis on exercise
+
+The goal of this project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. The report includes comparing 3 models built, comparing the accuracy of each model. We will also provide the prediction for 20 test set data.  
+
+### Load the data  
+
+```{r cache=TRUE}
+library(caret)
+
+# download the training and test data set files
+if (!file.exists("pml-training.csv")){
+        download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv",
+                "pml-training.csv", method = "curl")
+}
+
+if (!file.exists("pml-testing.csv")){
+        download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv",
+                "pml-testing.csv", method = "curl")
+}
+
+# inspect the csv files manually to see if they have NA values
+# looks like we have NA and #DIV/0! are two possible values
+
+trainingset <- read.csv("pml-training.csv", header = TRUE, 
+                        na.strings=c("NA", "#DIV/0!") )
+testingset <- read.csv("pml-testing.csv", header = TRUE, 
+                       na.strings=c("NA", "#DIV/0!") )
+```
+
+### Clean the data
+
+There are 19622 observations with 160 variables, we will reduce the set to the 52 variables for our model. Same variables are used for prediction for test sample and actual <code>testingset</code> too.  
+
+```{r  cache=TRUE}
+# up to num_window variable they are not used in our model
+trainingset <- trainingset[, -c(1,2,3,4,5,6,7)]
+
+# remove na values from the training set as well
+trainingset <-trainingset[, apply(trainingset, 2, function(x) !any(is.na(x)))]
+
+# apply the variables for testset as well from the above
+testingset <- testingset[,names(trainingset[,-53])]
+```
+
+### Training and Prediction
+
+we will split the data into 75% training and 25% for testing  
+
+```{r  cache=TRUE}
+inTrain<-createDataPartition(y=trainingset$classe, p=0.75,list=FALSE)
+training<-trainingset[inTrain,] 
+test<-trainingset[-inTrain,] 
+#Training and test set dimensions
+dim(training)
+```
+
+### Prediction modeling
+
+We will use <code>randomforest</code>, <code>boosted tree model</code> and 
+<code>k-nearest neighbour</code> classifications for predictions and compare 
+their accuracies
+
+```{r  cache=TRUE}
+set.seed(18435)
+# we will use the following 3 models to predict
+fitControl <- trainControl(method="cv", number=5, allowParallel=TRUE, verbose=TRUE)
+
+randomforestfit <- train(classe~.,data=training, method="rf", 
+                       trControl=fitControl, verbose=FALSE)
+
+randomforestpred <- predict(randomforestfit, newdata=test)
+
+# model 2
+
+gmbfit <- train(classe~.,data=training, method="gbm", 
+                trControl=fitControl, verbose=FALSE)
+
+gmbpred <- predict(gmbfit, newdata=test)
+
+confusionMatrix(gmbpred, test$classe)
+
+# model 3
+
+knnfit <- train(classe~.,data=training, method="knn") 
+
+knnpred <- predict(knnfit, newdata=test)
+
+confusionMatrix(randomforestpred, test$classe)
+confusionMatrix(gmbpred, test$classe)
+confusionMatrix(knnpred, test$classe)
+```
+
+From the above <code>Random Forest</code> classification has accuracy of 99.4% with 
+95% CI (0.9908, 0.9955) and Kappa: 0.99  
+
+From the above <code>boosted tree model</code> classification has accuracy of 96% with 
+95% CI (0.9533, 0.9646) and Kappa: 0.95  
+
+From the above <code>k-nearest neighbour</code> classification has accuracy of 91% with 95% CI (0.8979, 0.9144) and Kappa: 0.88 
+
+Since <code>Random Forest</code> has the highest accuracy, we will use the same for predicting the <code>testingset</code> values  
+
+### Prediction for <code>testingset</code> 
+```{r  cache=TRUE}
+testingsetpred <-predict(randomforestfit, newdata=testingset)
+
+testingsetpred
+```
